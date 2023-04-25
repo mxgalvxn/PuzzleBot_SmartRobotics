@@ -11,7 +11,7 @@ from std_msgs.msg import Float32
 # Define robot parameters
 wheel_radius = 0.05  # radius of wheels (m)
 wheelbase = 0.2  # distance between wheels (m) (l)
-dt = 0.01  # time step (s)
+dt = 0.001  # time step (s)
 t = 0  # Total time (s)
 v_max = 1  # maximum linear velocity (m/s)
 w_max = np.pi / 2  # maximum angular velocity (rad/s)
@@ -22,12 +22,12 @@ y = 0  # y-position (m)
 theta = 0  # orientation (rad)
 
 # Define reference positions
-positions = np.array([[0, 0], [-1, -1], [1, -1], [1, 1]])
+positions = np.array([[0, 0], [2, 0], [2, 2], [0, 2], [0,0]])
 num_positions = positions.shape[0]
 
 # Define gains for the PID controller
-kpr = 1
-kpt = 1
+kpr = 1.4
+kpt = .6
 
 
 wr = 0.0
@@ -49,12 +49,8 @@ nodeRate = 100
 rate = rospy.Rate(nodeRate)
 
 
-# Define desired velocities
-v_desired = 0.5  # linear velocity (m/s)
-w_desired = np.pi / 4  # angular velocity (rad/s)
-
 twist = Twist()
-vmax = 8
+vmax = .45
 
 if __name__=="__main__":
     try:
@@ -79,35 +75,36 @@ if __name__=="__main__":
             elif thetae < -math.pi:
                 thetae = thetae + 2*math.pi
 
-            w = -kpr * thetae
-            v = vmax*math.tanh(error*kpt/vmax);
+            wref = -kpr * thetae
+            vref = vmax*math.tanh(error*kpt/vmax)
 
-
+            vr = vref + (wheelbase*wref)/2
+            vl = vref - (wheelbase*wref)/2
             
-            vr = v + w * math.cos(theta)*wheel_radius*(wl + wr)/2
-            vl = v - w *math.sin(theta)*wheel_radius*(wl + wr)/2
+            vref = (vr + vl)/2
 
-            v = (vr+vl)/2
-            w = (vr-vl)/wheelbase
 
-            vx = v * math.cos(theta)
-            vy = v * math.sin(theta)
+            v_real = wheel_radius* (wr+wl)/2
+            w_real = wheel_radius* (wr-wl)/wheelbase
+
+            vx = v_real * math.cos(theta)
+            vy = v_real * math.sin(theta)
 
             x = x + vx*dt
             y = y + vy*dt
-            theta = theta + w * dt
+            theta = theta + w_real * dt
             
-            print('x actual = ', x, 'x deseada = ', xd)
+            print('y actual = ', y, 'y deseada = ', yd)
             print('error =', error)
             
 
             # Compute wheel velocities from desired linear and angular velocities
-            twist.linear.x = v
-            twist.angular.z = theta
+            twist.linear.x = vref
+            twist.angular.z = wref
             pub.publish(twist)
 
             # Check if the robot has reached the desired position
-            if abs(error) < 0.0001:
+            if abs(error) < 0.01:
                 i += 1
             t = t + dt
             rate.sleep()
