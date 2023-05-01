@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="rosbridge_server" type="rosbridge_websocket" name="rosbridge_server"/>
+  <node pkg="robot" type="close_square.py" name="square_mover" output="screen">
+    <param name="puzzlebot_ip" value="192.168.1.1" />
+  </node>
+</launch>
