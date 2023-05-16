@@ -1,80 +1,95 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# Description:
+# - Subscribes to real-time streaming video from your built-in webcam.
+#
+# Author:
+# - Addison Sears-Collins
+# - https://automaticaddison.com
+ 
+# Import the necessary libraries
+import rospy # Python library for ROS
+from sensor_msgs.msg import Image # Image is the message type
+from std_msgs.msg import String # Image is the message type
+from cv_bridge import CvBridge # Package to convert between ROS and OpenCV Images
+import cv2 # OpenCV library
+import ros_numpy
+import numpy as np
 
-import rospy
-import cv2
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
 
-def image_callback(msg):
-    bridge = CvBridge()
-    try:
-        # Convert ROS Image message to OpenCV image
-        cv_image = bridge.imgmsg_to_cv2(msg, "bgr8")
-    except CvBridgeError as e:
-        rospy.logerr(e)
-
-    # Convert BGR image to HSV image
-    hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
-
-    # Define color thresholds
-    lower_red = (0, 100, 100)
-    upper_red = (10, 255, 255)
-    lower_yellow = (20, 100, 100)
-    upper_yellow = (30, 255, 255)
-    lower_green = (60, 100, 100)
-    upper_green = (70, 255, 255)
-
-    # Threshold the image to get the color regions
-    mask_red = cv2.inRange(hsv_image, lower_red, upper_red)
-    mask_yellow = cv2.inRange(hsv_image, lower_yellow, upper_yellow)
-    mask_green = cv2.inRange(hsv_image, lower_green, upper_green)
-
-    # Find contours in the color regions
-    _, contours_red, _ = cv2.findContours(mask_red, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    _, contours_yellow, _ = cv2.findContours(mask_yellow, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    _, contours_green, _ = cv2.findContours(mask_green, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Draw contours and label the colors
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    if len(contours_red) > 0:
-        cv2.drawContours(cv_image, contours_red, -1, (0, 0, 255), 2)
-        cv2.putText(cv_image, "Red", (10, 50), font, 2, (0, 0, 255), 2)
-    elif len(contours_yellow) > 0:
-        cv2.drawContours(cv_image, contours_yellow, -1, (0, 255, 255), 2)
-        cv2.putText(cv_image, "Yellow", (10, 50), font, 2, (0, 255, 255), 2)
-    elif len(contours_green) > 0:
-        cv2.drawContours(cv_image, contours_green, -1, (0, 255, 0), 2)
-        cv2.putText(cv_image, "Green", (10, 50), font, 2, (0, 255, 0), 2)
+def detect_color(hsv_img):
+    # Define color ranges
+    yellow_lower = np.array([20, 100, 100])
+    yellow_upper = np.array([40, 255, 255])
+   
+    green_lower = np.array([40, 100, 100])
+    green_upper = np.array([80, 255, 255])
+   
+    red_lower1 = np.array([0, 100, 100])
+    red_upper1 = np.array([10, 255, 255])
+    red_lower2 = np.array([170, 100, 100])
+    red_upper2 = np.array([180, 255, 255])
+   
+    # Create masks for each color
+    yellow_mask = cv2.inRange(hsv_img, yellow_lower, yellow_upper)
+    green_mask = cv2.inRange(hsv_img, green_lower, green_upper)
+    red_mask1 = cv2.inRange(hsv_img, red_lower1, red_upper1)
+    red_mask2 = cv2.inRange(hsv_img, red_lower2, red_upper2)
+    red_mask = cv2.bitwise_or(red_mask1, red_mask2)
+   
+    # Check if any color is detected
+    if cv2.countNonZero(yellow_mask) > 0:
+        return "Amarillo"
+    elif cv2.countNonZero(green_mask) > 0:
+        return "Verde"
+    elif cv2.countNonZero(red_mask) > 0:
+        return "Rojo"
     else:
-        cv2.putText(cv_image, "No color detected", (10, 50), font, 2, (255, 255, 255), 2)
+        return "Ninguno"
 
-    # Display the image
-    cv2.imshow("Color detection", cv_image)
+def callback(data):
+ 
+    # Used to convert between ROS and OpenCV images
+    #br = CvBridge()
+ 
+    # Output debugging information to the terminal
+    #rospy.loginfo("Receiving video frame")
+   
+    # Convert ROS Image message to OpenCV image
+    #current_frame = br.imgmsg_to_cv2(data)
+   
+    # Convert the OpenCV image to NumPy array
+    current_frame = ros_numpy.numpify(data)
+
+    # Convert BGR to HSV
+    hsv_img = cv2.cvtColor(current_frame, cv2.COLOR_BGR2HSV)
+   
+    # Detect color
+    color = detect_color(hsv_img)
+
+    # Display image
+    cv2.imshow("Camera", current_frame)
+   
+    # Print detected color
+    #print("Color detectado:", color)
+    pubcolor = rospy.Publisher('colorSignal', String, queue_size = 10)
+    pubcolor.publish(color)
     cv2.waitKey(1)
-
-    # Publish the image
-    try:
-        image_pub.publish(bridge.cv2_to_imgmsg(cv_image, "bgr8"))
-    except CvBridgeError as e:
-        rospy.logerr(e)
-
-if __name__ == '__main__':
-    rospy.init_node('color_detection', anonymous=True)
-
-    # Subscribe to the image topic
-    image_sub =
-if __name__ == '__main__':
-    rospy.init_node('color_detection', anonymous=True)
-
-    # Subscribe to the image topic
-    image_sub = rospy.Subscriber("/camera/image_raw", Image, image_callback)
-
-    # Publish the image topic
-    image_pub = rospy.Publisher("/camera/color_detection", Image, queue_size=10)
-
-    # OpenCV initialization
-    cv2.namedWindow("Color detection", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Color detection", 640, 480)
-
-    # Keep the node running
+     
+def receive_message():
+ 
+    # Tells rospy the name of the node.
+    # Anonymous = True makes sure the node has a unique name. Random
+    # numbers are added to the end of the name.
+    rospy.init_node('video_color_py', anonymous=True)
+   
+    # Node is subscribing to the video_frames topic
+    rospy.Subscriber('video_frames', Image, callback)
+ 
+    # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
+ 
+    # Close down the video stream when done
+    cv2.destroyAllWindows()
+ 
+if _name_ == '_main_':
+    receive_message()
