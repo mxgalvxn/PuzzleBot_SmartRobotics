@@ -2,11 +2,12 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import roslib
+import roslib; roslib.load_manifest('teleop_twist_keyboard')
 import rospy
 import math
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Float32, String
+from std_msgs.msg import Float32
+from std_msgs.msg import String
 
 # Define robot parameters
 wheel_radius = 0.05  # radius of wheels (m)
@@ -26,19 +27,14 @@ positions = np.array([[0, 0], [2, 0], [2, 2], [0, 2], [0,0]])
 num_positions = positions.shape[0]
 
 # Define gains for the PID controller
-kpr = 26
-kpt = 18
+kpr = 1.4
+kpt = .6
 
-# Define variables for traffic light state
-traffic_light_state = "Green"
-traffic_light_colors = ["Red", "Yellow", "Green"]
-red_light_threshold = 0.05
-yellow_light_threshold = 0.1
 
 wr = 0.0
 wl = 0.0
 
-# Define callback functions for wheel velocities and traffic light state
+# Define callback functions for wheel velocities
 def wl_callback(data):
     global wl
     wl = data.data
@@ -47,9 +43,10 @@ def wr_callback(data):
     global wr
     wr = data.data
 
-def traffic_light_callback(data):
-    global traffic_light_state
-    traffic_light_state = data.data
+def color_callback(data):
+    global color
+    color = data.data
+
 
 # Set up ROS node and publishers/subscribers
 rospy.init_node('square_mover')
@@ -57,16 +54,31 @@ rospy.init_node('square_mover')
 nodeRate = 100
 rate = rospy.Rate(nodeRate)
 
+sub_color = rospy.Subscriber('colorSignal', string, color_callback)
+
 twist = Twist()
-vmax = .45
+
+color_value = 0
+
+if (sub_color == "Amarillo"){
+    color_value = .5
+}
+elif (sub_color == "Verde"){
+    color_value = 1
+}
+elif(sub_color == "Rojo"){
+        color_value = 0
+}
+vmax = .45 * color_value
+
 
 if __name__=="__main__":
     try:
+
         pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+
         sub_wl = rospy.Subscriber('wl', Float32, wl_callback)
         sub_wr = rospy.Subscriber('wr', Float32, wr_callback)
-        sub_traffic_light = rospy.Subscriber('color_pub', String, traffic_light_callback)
-
         # Simulate robot motion
         i = 1
         while i < num_positions:
@@ -88,27 +100,36 @@ if __name__=="__main__":
 
             vr = vref + (wheelbase*wref)/2
             vl = vref - (wheelbase*wref)/2
+            
+            vref = (vr + vl)/2
 
-                        # Check traffic light
-            color = rospy.wait_for_message('color_pub', String)
-            if color.data == "Red":
-                twist.linear.x = 0
-                twist.angular.z = 0
-                pub.publish(twist)
-                rospy.loginfo("STOPPED at red light")
-                while color.data != "Green":
-                    color = rospy.wait_for_message('color_pub', String)
-                rospy.loginfo("Resumed movement at green light")
-            elif color.data == "Yellow":
-                twist.linear.x = vmax/2
-                twist.angular.z = 0
-                pub.publish(twist)
-                rospy.loginfo("Moving slowly at yellow light")
-                while color.data != "Red":
-                    color = rospy.wait_for_message('color_pub', String)
-                rospy.loginfo("STOPPED at red light")
-            else:
-                rospy.loginfo("Continuing path with green light")
+
+            v_real = wheel_radius* (wr+wl)/2
+            w_real = wheel_radius* (wr-wl)/wheelbase
+
+            vx = v_real * math.cos(theta)
+            vy = v_real * math.sin(theta)
+
+            x = x + vx*dt
+            y = y + vy*dt
+            theta = theta + w_real * dt
+            
+            print('y actual = ', y, 'y deseada = ', yd)
+            print('error =', error)
+            
+
+            # Compute wheel velocities from desired linear and angular velocities
+            twist.linear.x = vref
+            twist.angular.z = wref
+            pub.publish(twist)
+
+            # Check if the robot has reached the desired position
+            if abs(error) < 0.01:
+                i += 1
+            t = t + dt
+            rate.sleep()
 
     except rospy.ROSInterruptException:
         pass
+
+
