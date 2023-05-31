@@ -8,31 +8,6 @@ import math
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32
 
-# Define robot parameters
-wheel_radius = 0.05  # radius of wheels (m)
-wheelbase = 0.2  # distance between wheels (m) (l)
-dt = 0.001  # time step (s)
-t = 0  # Total time (s)
-v_max = 1  # maximum linear velocity (m/s)
-w_max = np.pi / 2  # maximum angular velocity (rad/s)
-
-# Initialize robot state
-x = 0  # x-position (m)
-y = 0  # y-position (m)
-theta = 0  # orientation (rad)
-
-# Define reference positions
-positions = np.array([[0, 0], [2, 0], [2, 2], [0, 2], [0,0]])
-num_positions = positions.shape[0]
-
-# Define gains for the PID controller
-kpr = 1.4
-kpt = .6
-
-
-wr = 0.0
-wl = 0.0
-
 # Define callback functions for wheel velocities
 def wl_callback(data):
     global wl
@@ -43,25 +18,54 @@ def wr_callback(data):
     wr = data.data
 
 # Set up ROS node and publishers/subscribers
-rospy.init_node('square_mover')
-
-nodeRate = 100
-rate = rospy.Rate(nodeRate)
-
-
-twist = Twist()
-vmax = .45
 
 if __name__=="__main__":
     try:
+        rospy.init_node('square_mover')
+
+        nodeRate = 100
+        rate = rospy.Rate(nodeRate)
+
+
+        twist = Twist()
+        vmax = .2
+
+        # Define robot parameters
+        wheel_radius = 0.05  # radius of wheels (m)
+        wheelbase = 0.19  # distance between wheels (m) (l)
+        dt = 0.01  # time step (s)
+        t = 0  # Total time (s)
+        v_max = 1  # maximum linear velocity (m/s)
+        w_max = np.pi / 2  # maximum angular velocity (rad/s)
+        positions = np.array([[0, 0], [2, 0], [2, 2], [0, 2], [0,0]])
+        num_positions = positions.shape[0]
 
         pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
 
-        sub_wl = rospy.Subscriber('wl', Float32, wl_callback)
-        sub_wr = rospy.Subscriber('wr', Float32, wr_callback)
+        sub_wl = rospy.Subscriber('/wl', Float32, wl_callback)
+        sub_wr = rospy.Subscriber('/wr', Float32, wr_callback)
+        
+        # wl = rospy.wait_for_message('/wl', Twist, timeout=1)
+        # wr = rospy.wait_for_message('/wr', Twist, timeout=1)
+        x = 0.0  # x-position (m)
+        y = 0.0  # y-position (m)
+        theta = 0  # orientation (rad)
+
+        kpr = 1.4
+        kpt = 4.5
+
+
+        wr = 0.0
+        wl = 0.0
         # Simulate robot motion
         i = 1
         while i < num_positions:
+
+            # print('wl = ', wl)
+            # print()
+            # print('wr = ', wr)
+            # print()
+
             xd = positions[i,0]
             yd = positions[i,1]
 
@@ -85,6 +89,7 @@ if __name__=="__main__":
 
 
             v_real = wheel_radius* (wr+wl)/2
+
             w_real = wheel_radius* (wr-wl)/wheelbase
 
             vx = v_real * math.cos(theta)
@@ -94,8 +99,12 @@ if __name__=="__main__":
             y = y + vy*dt
             theta = theta + w_real * dt
             
-            print('y actual = ', y, 'y deseada = ', yd)
-            print('error =', error)
+            # print('y actual = ', y, 'y deseada = ', yd)
+            # print()
+            # print('x actual = ', x, 'x deseada = ', xd)
+            # print()
+            # print('error =', error)
+            # print()
             
 
             # Compute wheel velocities from desired linear and angular velocities
@@ -104,12 +113,10 @@ if __name__=="__main__":
             pub.publish(twist)
 
             # Check if the robot has reached the desired position
-            if abs(error) < 0.01:
+            if abs(error) < 0.1:
                 i += 1
             t = t + dt
             rate.sleep()
 
     except rospy.ROSInterruptException:
         pass
-
-
