@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<launch>
+    <node name="line_follower" pkg="follower" type="followline.py" output="screen"/>
+    <node name="controller" pkg="follower" type="controline.py" output="screen"/>
+
+</launch>   

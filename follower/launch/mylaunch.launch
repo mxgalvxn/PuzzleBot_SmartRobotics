@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<launch>
+    <node name="follow_it" pkg="follower" type="control.py"
+output="screen"/>
+    <node name="lane_detector" pkg="follower" type="line.py" output="screen"/>
+     <node name="signal_generator" pkg="follower" type="senderColor.py" output="screen"/>
+</launch>   
