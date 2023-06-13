@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<launch>
+    <node name="detec_line" pkg="SF" type="publish_node.py" output="screen"/>
+    <node name="controller" pkg="SF" type="controller.py" output="screen"/>
+    <node name="traffic_light_detector" pkg="SF" type="semaforo.py" output="screen"/>
+
+</launch>   

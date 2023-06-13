@@ -18,7 +18,7 @@ class Logic_Controller() :
         self.vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
 
         self.robot_vel = Twist()
-        self.color_flag = 0
+        self.color_flag = -1
         self.is_circle = 0
         self.radius = 0
 

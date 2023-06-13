@@ -53,7 +53,7 @@ if __name__=='__main__':
             elif(signal == "RED" or signal == "STOP"):
                 signal_value = 0
             elif( signal == "RIGHT"):
-                pV.angular.z = -1.57  # 90 degrees in radians (clockwise)
+                pV.angular.z = -0.57  # 90 degrees in radians (clockwise)
                 pV.linear.x = 0.2
                 pub_velocity.publish(pV)
                 rospy.sleep(2)

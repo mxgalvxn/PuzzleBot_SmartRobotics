@@ -1,6 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
-    <node name="line_follower" pkg="follower" type="followline.py" output="screen"/>
+    <node name="detec_line" pkg="follower" type="detec_line.py" output="screen"/>
     <node name="controller" pkg="follower" type="controline.py" output="screen"/>
+    <node name="traffic_light_detector" pkg="follower" type="semaforo.py" output="screen"/>
 
 </launch>   

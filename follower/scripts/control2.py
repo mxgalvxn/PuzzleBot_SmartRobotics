@@ -39,13 +39,16 @@ if __name__=='__main__':
     while not rospy.is_shutdown():
         current_t = rospy.get_time()
         dt = current_t - last_time
+        if (dt == 0):
+                dt = .00001
         last_time = current_t
 
         prop = kp * error
         der = kd * (error - last_error) / dt
 
         w = prop + der
-        print('Error: ', error)
+        print('Error: ', error) 
+        print('W: ', w)
 
         if w >= 0.35:
             w = 2.4
@@ -53,11 +56,12 @@ if __name__=='__main__':
             w = -2.2
         
         if error > 55 or error < -55.0:
-            pV.linear.x = 0.10
-        else:
             pV.linear.x = 0.15
+        else:
+            pV.linear.x = 0.12
             w = 0
         
+        print('W2   : ', w)
         pV.angular.z = w
         pub_velocity.publish(pV)
 

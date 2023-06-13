@@ -18,7 +18,7 @@ class Logic_Controller() :
         self.vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
 
         self.robot_vel = Twist()
-        self.color_flag = 0
+        self.color_flag = -1
         self.is_circle = 0
         self.radius = 0
 
@@ -27,19 +27,19 @@ class Logic_Controller() :
 
         while not rospy.is_shutdown() :
             if self.color_flag == 2:
-                print("STOP")
+                #print("STOP")
                 self.cmd_vel.linear.x = self.zero.linear.x
                 self.cmd_vel.angular.z = self.zero.angular.z
             elif self.color_flag == 1:
-                print("WARNING")
+                #print("WARNING")
                 self.cmd_vel.linear.x = self.robot_vel.linear.x / 2
                 self.cmd_vel.angular.z = self.robot_vel.angular.z / 2
             elif self.color_flag == 0:
-                print("CONTINUE")
+                #print("CONTINUE")
                 self.cmd_vel.linear.x = self.robot_vel.linear.x
                 self.cmd_vel.angular.z = self.robot_vel.angular.z
             elif self.color_flag == -1:
-                print("MOVING WITHOUT RESTRICTIONS")
+                #print("MOVING WITHOUT RESTRICTIONS")
                 self.cmd_vel.linear.x = self.robot_vel.linear.x
                 self.cmd_vel.angular.z = self.robot_vel.angular.z
             else:

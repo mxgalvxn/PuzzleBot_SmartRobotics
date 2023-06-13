@@ -77,7 +77,7 @@ def image_callback(img_msg):
 
     # Flip the image 90deg
     #cv_image = cv2.transpose(cv_image)
-    cv_image = cv.flip(cv_image,1)
+    cv_image = cv.flip(cv_image,0)
 
     # Show the converted image
     show_image(cv_image)
